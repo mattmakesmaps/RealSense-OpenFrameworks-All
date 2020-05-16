@@ -113,6 +113,8 @@ void ofApp::draw(){
 	ofRotateYDeg(90);
 	ofTranslate(-appWidth / 2, -appHeight / 2);
 	mesh.draw();
+	//mesh.drawFaces();
+	//mesh.drawWireframe();
 	cam.end();
 
 	// Draw Text
@@ -149,17 +151,41 @@ void ofApp::keyPressed(int key){
 		connectLines = !connectLines;
 
 	// Increase Decrease minRawDepth
-	if (key == 'p') minRawDepth += 0.25;
+	if (key == 'p') {
+		if (minRawDepth <= 1) {
+			minRawDepth += 0.05;
+		}
+		else {
+			minRawDepth += 0.25;
+		}
+	}
+
 	if (key == 'o') {
-		if (minRawDepth > 0.25)
+		if (minRawDepth > 1) {
 			minRawDepth -= 0.25;
+		}
+		else if (minRawDepth > 0.05) {
+			minRawDepth -= 0.05;
+		}
 	};
 
 	// Increase Decrease maxRawDepth 
-	if (key == 'l') maxRawDepth += 0.25;
+	if (key == 'l') {
+		if (maxRawDepth <= 1) {
+			maxRawDepth += 0.05;
+		}
+		else {
+			maxRawDepth += 0.25;
+		}
+	}
+
 	if (key == 'k') {
-		if (maxRawDepth > 0.25)
+		if (maxRawDepth > 1) {
 			maxRawDepth -= 0.25;
+		}
+		else if (maxRawDepth > 0.05) {
+			maxRawDepth -= 0.05;
+		}
 	};
 
 	// Increase Decrease stepSize 
