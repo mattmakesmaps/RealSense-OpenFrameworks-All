@@ -28,8 +28,8 @@ class ofApp : public ofBaseApp{
 		static const int appHeight;
 		static const int depthFrameWidth;
 		static const int depthFrameHeight;
-		static int squareLength;
 
 		ofEasyCam cam;
 		ofMesh mesh;
+		std::vector<ofMesh> meshes;
 };

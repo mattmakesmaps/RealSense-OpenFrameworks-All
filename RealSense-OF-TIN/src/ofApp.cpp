@@ -6,17 +6,16 @@ const int ofApp::depthFrameWidth = 848;
 const int ofApp::depthFrameHeight = 480;
 const int ofApp::appWidth = depthFrameWidth * 2;
 const int ofApp::appHeight = depthFrameHeight * 2;
-int ofApp::squareLength = 60;
+const int buffer = 0; // lets clip the outer edges to reduce noise.
 
 namespace {
 	bool filterNoise = false;
-	bool connectLines = false;
 	auto connectDistance = 50;
 	auto minRawDepth = 0.1;
-	auto maxRawDepth = 5.0;
+	auto maxRawDepth = 2.0;
 	auto minMappedDepth = 1;
 	auto maxMappedDepth = 1000;
-	int stepSize = 4;
+	int stepSize = 10;
 
 	typedef std::pair <std::string, ofPrimitiveMode> primativePair;
 	vector<primativePair> primativeModes = {
@@ -45,16 +44,8 @@ void ofApp::setup() {
 
 //--------------------------------------------------------------
 void ofApp::update() {
-	if (connectLines)
-	{
-		mesh.setMode(primativeModeIterator->second);
-		mesh.enableIndices();
-	}
-	else {
-		mesh.setMode(OF_PRIMITIVE_POINTS);
-	}
 
-	mesh.clear();
+	meshes.clear();
 
 	// Block program until frames arrive
 	rs2::frameset frames = rs2_pipe.wait_for_frames();
@@ -62,57 +53,63 @@ void ofApp::update() {
 	rs2::depth_frame depth = frames.get_depth_frame();
 
 	// loop through the image in the x and y axes
-	for (int y = 0; y < depthFrameHeight; y += stepSize) {
-		for (int x = 0; x < depthFrameWidth; x += stepSize) {
-			const ofColor pointColor = ofColor::yellow;
+	for (int y = 0 + buffer; y < depthFrameHeight - buffer; y += stepSize) {
+
+		int vertCounter = 0;
+		ofMesh scanLine;
+		scanLine.setMode(primativeModeIterator->second);
+		scanLine.enableIndices();
+
+		for (int x = 0 + buffer; x < depthFrameWidth - buffer; x += stepSize) {
+
+			const ofColor pointColor = ofColor::orange;
 			auto depthValue = depth.get_distance(x, y);
 
 			// map depthValue to extrude it a bit
-			auto extrudedDepthValue = ofMap(depthValue, minRawDepth, maxRawDepth, minMappedDepth, maxMappedDepth, true);
-			mesh.addColor(pointColor);
+			auto extrudedDepthValue = ofMap(depthValue, minRawDepth, maxRawDepth, minMappedDepth, maxMappedDepth, false);
+			scanLine.addColor(pointColor);
 			glm::vec3 pos(x, y, extrudedDepthValue);
 			// ignore floor/ceiling points
-			if (filterNoise && (extrudedDepthValue > minMappedDepth && extrudedDepthValue < maxMappedDepth)) {
-				mesh.addVertex(pos);
-			}
-			else if (!filterNoise)
+			if (!filterNoise || 
+				(filterNoise && (extrudedDepthValue > minMappedDepth && extrudedDepthValue < maxMappedDepth)))
 			{
-				mesh.addVertex(pos);
+				scanLine.addVertex(pos);
+				scanLine.addIndex(vertCounter);
+				vertCounter++;
 			}
 		}
+
+		meshes.push_back(scanLine);
 	}
+/*
+	for (int y = 0 + buffer; y < depthFrameHeight - buffer - 1; y += stepSize) {
+		for (int x = 0 + buffer; x < depthFrameWidth - buffer - 1; x += stepSize) {
+			mesh.addIndex(x + y * (depthFrameWidth - buffer));               // 0
+			mesh.addIndex((x + 1) + y * (depthFrameWidth - buffer));           // 1
+			mesh.addIndex(x + (y + 1) * (depthFrameWidth - buffer));           // 10
 
-
-	// https://openframeworks.cc/ofBook/chapters/generativemesh.html
-	if (connectLines)
-	{
-		int numVerts = mesh.getNumVertices();
-		for (int a = 0; a < numVerts; ++a) {
-			ofVec3f verta = mesh.getVertex(a);
-			for (int b = a + 1; b < numVerts; ++b) {
-				ofVec3f vertb = mesh.getVertex(b);
-				float distance = verta.distance(vertb);
-				if (distance <= connectDistance) {
-					// In OF_PRIMITIVE_LINES, every pair of vertices or indices will be
-					// connected to form a line
-					mesh.addIndex(a);
-					mesh.addIndex(b);
-				}
-			}
+			mesh.addIndex((x + 1) + y * (depthFrameWidth - buffer));           // 1
+			mesh.addIndex((x + 1) + (y + 1) * (depthFrameWidth - buffer));       // 11
+			mesh.addIndex(x + (y + 1) * (depthFrameWidth - buffer));
 		}
 	}
+	*/
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-	ofBackgroundGradient(ofColor::gray, ofColor::black, OF_GRADIENT_CIRCULAR);
+	ofBackgroundGradient(ofColor::black, ofColor::black, OF_GRADIENT_CIRCULAR);
 
 	// even points can overlap with each other, let's avoid that
 	cam.begin();
-	ofScale(2, -2, 2); // flip the y axis and zoom in a bit
-	ofRotateYDeg(90);
-	ofTranslate(-appWidth / 2, -appHeight / 2);
-	mesh.draw();
+	//ofScale(2, -2, 2); // flip the y axis
+	//ofRotateYDeg(90);
+	ofRotateZDeg(180);
+	ofRotateXDeg(270);
+	ofTranslate(-appWidth / 4 , 0, -appHeight/4);
+	for (auto& scanLine : meshes) {
+		scanLine.draw();
+	}
 	//mesh.drawFaces();
 	//mesh.drawWireframe();
 	cam.end();
@@ -123,7 +120,6 @@ void ofApp::draw(){
 	ss << "minRawDepth (p,o): " << minRawDepth << std::endl;
 	ss << "maxnRawDepth (l,k): " << maxRawDepth << std::endl;
 	ss << "filterNoise (f): " << (filterNoise ? "true" : "false") << std::endl;
-	ss << "connectLines (c): " << (connectLines ? "true" : "false") << std::endl;
 	ss << "connectDistance (r,t): " << connectDistance << std::endl;
 	ss << "primativeMode (x): " << primativeModeIterator->first << std::endl;
 	ofDrawBitmapString(ss.str().c_str(), 20, 20);
@@ -145,10 +141,6 @@ void ofApp::keyPressed(int key){
 			primativeModeIterator = primativeModes.begin();
 		}
 	}
-
-	// Toggle connectLines (populates indicies)
-	if (key == 'c')
-		connectLines = !connectLines;
 
 	// Increase Decrease minRawDepth
 	if (key == 'p') {
@@ -193,13 +185,6 @@ void ofApp::keyPressed(int key){
 	if (key == 'n') {
 		if (stepSize > 1)
 			stepSize -= 1;
-	};
-
-	// Increase Decrease connectDistance
-	if (key == 't') connectDistance += 5;
-	if (key == 'r') {
-		if (connectDistance > 5)
-			connectDistance -= 5;
 	};
 
 
