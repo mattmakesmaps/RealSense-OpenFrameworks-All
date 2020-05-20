@@ -56,9 +56,9 @@ void ofApp::update() {
 	for (int y = 0 + buffer; y < depthFrameHeight - buffer; y += stepSize) {
 
 		int vertCounter = 0;
-		ofMesh scanLine;
-		scanLine.setMode(primativeModeIterator->second);
-		scanLine.enableIndices();
+		auto scanLine = std::make_unique<ofMesh>();
+		scanLine->setMode(primativeModeIterator->second);
+		scanLine->enableIndices();
 
 		for (int x = 0 + buffer; x < depthFrameWidth - buffer; x += stepSize) {
 
@@ -67,33 +67,20 @@ void ofApp::update() {
 
 			// map depthValue to extrude it a bit
 			auto extrudedDepthValue = ofMap(depthValue, minRawDepth, maxRawDepth, minMappedDepth, maxMappedDepth, false);
-			scanLine.addColor(pointColor);
+			scanLine->addColor(pointColor);
 			glm::vec3 pos(x, y, extrudedDepthValue);
 			// ignore floor/ceiling points
 			if (!filterNoise || 
 				(filterNoise && (extrudedDepthValue > minMappedDepth && extrudedDepthValue < maxMappedDepth)))
 			{
-				scanLine.addVertex(pos);
-				scanLine.addIndex(vertCounter);
+				scanLine->addVertex(pos);
+				scanLine->addIndex(vertCounter);
 				vertCounter++;
 			}
 		}
 
-		meshes.push_back(scanLine);
+		meshes.push_back(std::move(scanLine));
 	}
-/*
-	for (int y = 0 + buffer; y < depthFrameHeight - buffer - 1; y += stepSize) {
-		for (int x = 0 + buffer; x < depthFrameWidth - buffer - 1; x += stepSize) {
-			mesh.addIndex(x + y * (depthFrameWidth - buffer));               // 0
-			mesh.addIndex((x + 1) + y * (depthFrameWidth - buffer));           // 1
-			mesh.addIndex(x + (y + 1) * (depthFrameWidth - buffer));           // 10
-
-			mesh.addIndex((x + 1) + y * (depthFrameWidth - buffer));           // 1
-			mesh.addIndex((x + 1) + (y + 1) * (depthFrameWidth - buffer));       // 11
-			mesh.addIndex(x + (y + 1) * (depthFrameWidth - buffer));
-		}
-	}
-	*/
 }
 
 //--------------------------------------------------------------
@@ -108,10 +95,8 @@ void ofApp::draw(){
 	ofRotateXDeg(270);
 	ofTranslate(-appWidth / 4 , 0, -appHeight/4);
 	for (auto& scanLine : meshes) {
-		scanLine.draw();
+		scanLine->draw();
 	}
-	//mesh.drawFaces();
-	//mesh.drawWireframe();
 	cam.end();
 
 	// Draw Text

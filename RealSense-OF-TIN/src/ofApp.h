@@ -31,5 +31,5 @@ class ofApp : public ofBaseApp{
 
 		ofEasyCam cam;
 		ofMesh mesh;
-		std::vector<ofMesh> meshes;
+		std::vector<std::unique_ptr<ofMesh>> meshes;
 };
