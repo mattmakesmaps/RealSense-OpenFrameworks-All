@@ -9,7 +9,7 @@ const int ofApp::appHeight = depthFrameHeight * 2;
 const int buffer = 0; // lets clip the outer edges to reduce noise.
 
 namespace {
-	bool filterNoise = false;
+	bool enableNoiseSmoothing = false;
 	auto connectDistance = 50;
 	auto minRawDepth = 0.1;
 	auto maxRawDepth = 2.0;
@@ -68,14 +68,46 @@ void ofApp::update() {
 			// map depthValue to extrude it a bit
 			auto extrudedDepthValue = ofMap(depthValue, minRawDepth, maxRawDepth, minMappedDepth, maxMappedDepth, false);
 			scanLine->addColor(pointColor);
-			glm::vec3 pos(x, y, extrudedDepthValue);
-			// ignore floor/ceiling points
-			if (!filterNoise || 
-				(filterNoise && (extrudedDepthValue > minMappedDepth && extrudedDepthValue < maxMappedDepth)))
+
+			// arbitrarilly set outlier point to `minMappedDepth - 1` as a signal it needs to be interpolated.
+			if (enableNoiseSmoothing && (extrudedDepthValue < minMappedDepth || extrudedDepthValue > maxMappedDepth))
 			{
-				scanLine->addVertex(pos);
-				scanLine->addIndex(vertCounter);
-				vertCounter++;
+				extrudedDepthValue = minMappedDepth - 1; // -1 to bypass any weird float comparision.
+			}
+
+			glm::vec3 pos(x, y, extrudedDepthValue);
+			scanLine->addVertex(pos);
+			scanLine->addIndex(vertCounter);
+			vertCounter++;
+		}
+
+		// Iterate through the completed mesh and interpolate if needed.
+		if (enableNoiseSmoothing)
+		{
+			for (int i = 0; i < scanLine->getNumVertices(); i++)
+			{
+				auto targetVert = scanLine->getVertex(i);
+				bool targetVertDirty = false;
+				bool hasPrevVert = (i != 0 ? true : false);
+				bool hasNextVert = (i != (scanLine->getNumVertices() - 1) ? true : false);
+				if (targetVert.z < minMappedDepth) {
+					targetVertDirty = true;
+					auto lerpZ = minMappedDepth;
+					if (hasPrevVert && hasNextVert) {
+						auto prevVertZ = scanLine->getVertex(i - 1).z;
+						auto nextVertZ = scanLine->getVertex(i + 1).z;
+						lerpZ = ofLerp(prevVertZ, nextVertZ, 0.5);
+					}
+					else if (hasPrevVert && !hasNextVert) {
+						lerpZ = scanLine->getVertex(i - 1).z;
+					}
+					else {
+						lerpZ = scanLine->getVertex(i + 1).z;
+					}
+					targetVert.z = lerpZ;
+				}
+				if (targetVertDirty)
+					scanLine->setVertex(i, targetVert);
 			}
 		}
 
@@ -104,7 +136,7 @@ void ofApp::draw(){
 	ss << "Point Density (m, n): " << stepSize << std::endl;
 	ss << "minRawDepth (p,o): " << minRawDepth << std::endl;
 	ss << "maxnRawDepth (l,k): " << maxRawDepth << std::endl;
-	ss << "filterNoise (f): " << (filterNoise ? "true" : "false") << std::endl;
+	ss << "enableNoiseSmoothing (f): " << (enableNoiseSmoothing ? "true" : "false") << std::endl;
 	ss << "connectDistance (r,t): " << connectDistance << std::endl;
 	ss << "primativeMode (x): " << primativeModeIterator->first << std::endl;
 	ofDrawBitmapString(ss.str().c_str(), 20, 20);
@@ -115,7 +147,7 @@ void ofApp::draw(){
 void ofApp::keyPressed(int key){
 	// Toggle Filtering
 	if (key == 'f')
-		filterNoise = !filterNoise;
+		enableNoiseSmoothing = !enableNoiseSmoothing;
 
 	// Cycle Primative Mode 
 	if (key == 'x') {
