@@ -10,11 +10,12 @@ const int buffer = 0; // lets clip the outer edges to reduce noise.
 
 namespace {
 	bool enableNoiseSmoothing = false;
+	bool labelPoints = false;
 	auto minRawDepth = 0.1;
 	auto maxRawDepth = 2.0;
 	auto minMappedDepth = 1;
 	auto maxMappedDepth = 1000;
-	int stepSize = 10;
+	int stepSize = 20;
 
 	typedef std::pair <std::string, ofPrimitiveMode> primativePair;
 	vector<primativePair> primativeModes = {
@@ -127,6 +128,26 @@ void ofApp::draw(){
 	ofTranslate(-appWidth / 4 , 0, -appHeight/4);
 	for (auto& scanLine : meshes) {
 		scanLine->draw();
+		if (labelPoints)
+		{
+			for (int i = 0; i < scanLine->getNumVertices(); i++)
+			{
+				auto vertX = scanLine->getVertex(i).x;
+				auto vertY = scanLine->getVertex(i).y;
+				auto vertZ = scanLine->getVertex(i).z;
+				stringstream sPos;
+
+				/* uncomment for format: <point:x,y,z> */
+				/*
+				sPos << i << ":" << vertX << "," << vertY << "," << vertZ << std::endl;
+				ofDrawBitmapString(sPos.str().c_str(), vertX + 1, vertY + 1, vertZ + 1);
+				*/
+
+				/* uncomment for format: <point> */
+				sPos << i << std::endl;
+				ofDrawBitmapString(sPos.str().c_str(), vertX + 1, vertY + 1, vertZ + 1);
+			}
+		}
 	}
 	cam.end();
 
@@ -136,6 +157,7 @@ void ofApp::draw(){
 	ss << "minRawDepth (p,o): " << minRawDepth << std::endl;
 	ss << "maxnRawDepth (l,k): " << maxRawDepth << std::endl;
 	ss << "enableNoiseSmoothing (f): " << (enableNoiseSmoothing ? "true" : "false") << std::endl;
+	ss << "labelPoints (u): " << (labelPoints ? "true" : "false") << std::endl;
 	ss << "primativeMode (x): " << primativeModeIterator->first << std::endl;
 	ofDrawBitmapString(ss.str().c_str(), 20, 20);
 
@@ -146,6 +168,10 @@ void ofApp::keyPressed(int key){
 	// Toggle Filtering
 	if (key == 'f')
 		enableNoiseSmoothing = !enableNoiseSmoothing;
+
+	// Label Points
+	if (key == 'u')
+		labelPoints = !labelPoints;
 
 	// Cycle Primative Mode 
 	if (key == 'x') {
