@@ -45,20 +45,20 @@ void ofApp::setup() {
 //--------------------------------------------------------------
 void ofApp::update() {
 
-	meshes.clear();
+	mesh.clear();
 
 	// Block program until frames arrive
 	rs2::frameset frames = rs2_pipe.wait_for_frames();
 	// Try to get a frame of a depth image
 	rs2::depth_frame depth = frames.get_depth_frame();
 
+	int vertCounter = 0;
+	mesh.setMode(primativeModeIterator->second);
+	mesh.enableIndices();
+
 	// loop through the image in the x and y axes
 	for (int y = 0 + buffer; y < depthFrameHeight - buffer; y += stepSize) {
 
-		int vertCounter = 0;
-		auto scanLine = std::make_unique<ofMesh>();
-		scanLine->setMode(primativeModeIterator->second);
-		scanLine->enableIndices();
 
 		for (int x = 0 + buffer; x < depthFrameWidth - buffer; x += stepSize) {
 
@@ -67,7 +67,7 @@ void ofApp::update() {
 
 			// map depthValue to extrude it a bit
 			auto extrudedDepthValue = ofMap(depthValue, minRawDepth, maxRawDepth, minMappedDepth, maxMappedDepth, false);
-			scanLine->addColor(pointColor);
+			mesh.addColor(pointColor);
 
 			// arbitrarilly set outlier point to `minMappedDepth - 1` as a signal it needs to be interpolated.
 			if (enableNoiseSmoothing && (extrudedDepthValue < minMappedDepth || extrudedDepthValue > maxMappedDepth))
@@ -76,42 +76,42 @@ void ofApp::update() {
 			}
 
 			glm::vec3 pos(x, y, extrudedDepthValue);
-			scanLine->addVertex(pos);
-			scanLine->addIndex(vertCounter);
+			mesh.addVertex(pos);
+			mesh.addIndex(vertCounter);
 			vertCounter++;
 		}
 
 		// Iterate through the completed mesh and interpolate if needed.
 		if (enableNoiseSmoothing)
 		{
-			for (int i = 0; i < scanLine->getNumVertices(); i++)
+			for (int i = 0; i < mesh.getNumVertices(); i++)
 			{
-				auto targetVert = scanLine->getVertex(i);
+				auto targetVert = mesh.getVertex(i);
 				bool targetVertDirty = false;
 				bool hasPrevVert = (i != 0 ? true : false);
-				bool hasNextVert = (i != (scanLine->getNumVertices() - 1) ? true : false);
+				bool hasNextVert = (i != (mesh.getNumVertices() - 1) ? true : false);
 				if (targetVert.z < minMappedDepth) {
 					targetVertDirty = true;
 					auto lerpZ = minMappedDepth;
 					if (hasPrevVert && hasNextVert) {
-						auto prevVertZ = scanLine->getVertex(i - 1).z;
-						auto nextVertZ = scanLine->getVertex(i + 1).z;
+						auto prevVertZ = mesh.getVertex(i - 1).z;
+						auto nextVertZ = mesh.getVertex(i + 1).z;
 						lerpZ = ofLerp(prevVertZ, nextVertZ, 0.5);
 					}
 					else if (hasPrevVert && !hasNextVert) {
-						lerpZ = scanLine->getVertex(i - 1).z;
+						lerpZ = mesh.getVertex(i - 1).z;
 					}
 					else {
-						lerpZ = scanLine->getVertex(i + 1).z;
+						lerpZ = mesh.getVertex(i + 1).z;
 					}
 					targetVert.z = lerpZ;
 				}
 				if (targetVertDirty)
-					scanLine->setVertex(i, targetVert);
+					mesh.setVertex(i, targetVert);
 			}
 		}
 
-		meshes.push_back(std::move(scanLine));
+		//meshes.push_back(std::move(scanLine));
 	}
 }
 
@@ -126,27 +126,25 @@ void ofApp::draw(){
 	ofRotateZDeg(180);
 	ofRotateXDeg(270);
 	ofTranslate(-appWidth / 4 , 0, -appHeight/4);
-	for (auto& scanLine : meshes) {
-		scanLine->draw();
-		if (labelPoints)
+	mesh.draw();
+	if (labelPoints)
+	{
+		for (int i = 0; i < mesh.getNumVertices(); i++)
 		{
-			for (int i = 0; i < scanLine->getNumVertices(); i++)
-			{
-				auto vertX = scanLine->getVertex(i).x;
-				auto vertY = scanLine->getVertex(i).y;
-				auto vertZ = scanLine->getVertex(i).z;
-				stringstream sPos;
+			auto vertX = mesh.getVertex(i).x;
+			auto vertY = mesh.getVertex(i).y;
+			auto vertZ = mesh.getVertex(i).z;
+			stringstream sPos;
 
-				/* uncomment for format: <point:x,y,z> */
-				/*
-				sPos << i << ":" << vertX << "," << vertY << "," << vertZ << std::endl;
-				ofDrawBitmapString(sPos.str().c_str(), vertX + 1, vertY + 1, vertZ + 1);
-				*/
+			/* uncomment for format: <point:x,y,z> */
+			/*
+			sPos << i << ":" << vertX << "," << vertY << "," << vertZ << std::endl;
+			ofDrawBitmapString(sPos.str().c_str(), vertX + 1, vertY + 1, vertZ + 1);
+			*/
 
-				/* uncomment for format: <point> */
-				sPos << i << std::endl;
-				ofDrawBitmapString(sPos.str().c_str(), vertX + 1, vertY + 1, vertZ + 1);
-			}
+			/* uncomment for format: <point> */
+			sPos << i << std::endl;
+			ofDrawBitmapString(sPos.str().c_str(), vertX + 1, vertY + 1, vertZ + 1);
 		}
 	}
 	cam.end();
