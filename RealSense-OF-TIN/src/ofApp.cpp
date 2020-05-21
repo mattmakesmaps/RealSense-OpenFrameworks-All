@@ -10,7 +10,6 @@ const int buffer = 0; // lets clip the outer edges to reduce noise.
 
 namespace {
 	bool enableNoiseSmoothing = false;
-	auto connectDistance = 50;
 	auto minRawDepth = 0.1;
 	auto maxRawDepth = 2.0;
 	auto minMappedDepth = 1;
@@ -19,13 +18,13 @@ namespace {
 
 	typedef std::pair <std::string, ofPrimitiveMode> primativePair;
 	vector<primativePair> primativeModes = {
+		primativePair("OF_PRIMITIVE_LINE_STRIP",OF_PRIMITIVE_LINE_STRIP),
+		primativePair("OF_PRIMITIVE_LINE_LOOP",OF_PRIMITIVE_LINE_LOOP),
+		primativePair("OF_PRIMITIVE_LINES",OF_PRIMITIVE_LINES),
 		primativePair("OF_PRIMITIVE_POINTS",OF_PRIMITIVE_POINTS),
 		primativePair("OF_PRIMITIVE_TRIANGLES",OF_PRIMITIVE_TRIANGLES),
 		primativePair("OF_PRIMITIVE_TRIANGLE_STRIP",OF_PRIMITIVE_TRIANGLE_STRIP),
-		primativePair("OF_PRIMITIVE_TRIANGLE_FAN",OF_PRIMITIVE_TRIANGLE_FAN),
-		primativePair("OF_PRIMITIVE_LINES",OF_PRIMITIVE_LINES),
-		primativePair("OF_PRIMITIVE_LINE_STRIP",OF_PRIMITIVE_LINE_STRIP),
-		primativePair("OF_PRIMITIVE_LINE_LOOP",OF_PRIMITIVE_LINE_LOOP)
+		primativePair("OF_PRIMITIVE_TRIANGLE_FAN",OF_PRIMITIVE_TRIANGLE_FAN)
 	};
 
 	vector<primativePair>::iterator primativeModeIterator = primativeModes.begin();
@@ -137,7 +136,6 @@ void ofApp::draw(){
 	ss << "minRawDepth (p,o): " << minRawDepth << std::endl;
 	ss << "maxnRawDepth (l,k): " << maxRawDepth << std::endl;
 	ss << "enableNoiseSmoothing (f): " << (enableNoiseSmoothing ? "true" : "false") << std::endl;
-	ss << "connectDistance (r,t): " << connectDistance << std::endl;
 	ss << "primativeMode (x): " << primativeModeIterator->first << std::endl;
 	ofDrawBitmapString(ss.str().c_str(), 20, 20);
 
