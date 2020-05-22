@@ -36,7 +36,10 @@ void ofApp::setup() {
 	ofSetVerticalSync(true);
 
 	spot.setup();
-	spot.setPosition(0,0,0);
+	spot.setPosition(100,-175,0);
+
+	meshMaterial.setDiffuseColor(ofColor::orange);
+	meshMaterial.setShininess(0.01);
 
 	ofEnableDepthTest();
 	glEnable(GL_POINT_SMOOTH); // use circular points instead of square points
@@ -47,14 +50,13 @@ void ofApp::setup() {
 //--------------------------------------------------------------
 void ofApp::update() {
 
-	mesh.clear();
-
 	// Block program until frames arrive
 	rs2::frameset frames = rs2_pipe.wait_for_frames();
 	// Try to get a frame of a depth image
 	rs2::depth_frame depth = frames.get_depth_frame();
 
 	int vertCounter = 0;
+	mesh.clear();
 	mesh.setMode(primativeModeIterator->second);
 	mesh.enableIndices();
 
@@ -64,12 +66,9 @@ void ofApp::update() {
 
 		for (int x = 0; x < depthFrameWidth; x += stepSize) {
 
-			const ofColor pointColor = ofColor::orange;
-			auto depthValue = depth.get_distance(x, y);
-
 			// map depthValue to extrude it a bit
+			auto depthValue = depth.get_distance(x, y);
 			auto extrudedDepthValue = ofMap(depthValue, minRawDepth, maxRawDepth, minMappedDepth, maxMappedDepth, false);
-			mesh.addColor(pointColor);
 
 			// arbitrarilly set outlier point to `minMappedDepth - 1` as a signal it needs to be interpolated.
 			if (enableNoiseSmoothing && (extrudedDepthValue < minMappedDepth || extrudedDepthValue > maxMappedDepth))
@@ -140,12 +139,14 @@ void ofApp::draw(){
 	// even points can overlap with each other, let's avoid that
 	spot.enable();
 	cam.begin();
-	//ofScale(2, -2, 2); // flip the y axis
-	//ofRotateYDeg(90);
+
 	ofRotateZDeg(180);
 	ofRotateXDeg(270);
 	ofTranslate(-appWidth / 4 , 0, -appHeight/4);
+
+	meshMaterial.begin();
 	mesh.draw();
+	meshMaterial.end();
 	if (labelPoints)
 	{
 		for (int i = 0; i < mesh.getNumVertices(); i++)

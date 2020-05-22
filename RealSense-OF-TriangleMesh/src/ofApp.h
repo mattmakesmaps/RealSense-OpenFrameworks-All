@@ -32,5 +32,7 @@ class ofApp : public ofBaseApp{
 		ofEasyCam cam;
 		ofMesh mesh;
 		ofLight spot;
+		ofMaterial meshMaterial;
+		ofColor materialColor;
 		std::vector<std::unique_ptr<ofMesh>> meshes;
 };
