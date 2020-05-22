@@ -2,11 +2,10 @@
 #include <string>
 #include <iostream>
 
-const int ofApp::depthFrameWidth = 848;
+const int ofApp::depthFrameWidth = 840;
 const int ofApp::depthFrameHeight = 480;
 const int ofApp::appWidth = depthFrameWidth * 2;
 const int ofApp::appHeight = depthFrameHeight * 2;
-const int buffer = 0; // lets clip the outer edges to reduce noise.
 
 namespace {
 	bool enableNoiseSmoothing = false;
@@ -57,10 +56,10 @@ void ofApp::update() {
 	mesh.enableIndices();
 
 	// loop through the image in the x and y axes
-	for (int y = 0 + buffer; y < depthFrameHeight - buffer; y += stepSize) {
+	for (int y = 0; y < depthFrameHeight; y += stepSize) {
 
 
-		for (int x = 0 + buffer; x < depthFrameWidth - buffer; x += stepSize) {
+		for (int x = 0; x < depthFrameWidth; x += stepSize) {
 
 			const ofColor pointColor = ofColor::orange;
 			auto depthValue = depth.get_distance(x, y);
@@ -90,36 +89,53 @@ void ofApp::update() {
 				bool targetVertDirty = false;
 				bool hasPrevVert = (i != 0 ? true : false);
 				bool hasNextVert = (i != (mesh.getNumVertices() - 1) ? true : false);
-				if (targetVert.z < minMappedDepth) {
+
+				// lerp interior nodes that are outliers
+				if (targetVert.z < minMappedDepth && (hasPrevVert && hasNextVert)) {
 					targetVertDirty = true;
-					auto lerpZ = minMappedDepth;
-					if (hasPrevVert && hasNextVert) {
-						auto prevVertZ = mesh.getVertex(i - 1).z;
-						auto nextVertZ = mesh.getVertex(i + 1).z;
-						lerpZ = ofLerp(prevVertZ, nextVertZ, 0.5);
-					}
-					else if (hasPrevVert && !hasNextVert) {
-						lerpZ = mesh.getVertex(i - 1).z;
-					}
-					else {
-						lerpZ = mesh.getVertex(i + 1).z;
-					}
-					targetVert.z = lerpZ;
+					auto prevVertZ = mesh.getVertex(i - 1).z;
+					auto nextVertZ = mesh.getVertex(i + 1).z;
+					targetVert.z = ofLerp(prevVertZ, nextVertZ, 0.5);
 				}
+				
+				// set exterior nodes that our outliers to maxMappedDepth
+				if (hasPrevVert != hasNextVert) {
+					targetVertDirty = true;
+					targetVert.z = maxMappedDepth;
+				}
+
 				if (targetVertDirty)
 					mesh.setVertex(i, targetVert);
 			}
 		}
 
-		//meshes.push_back(std::move(scanLine));
 	}
+
+	// MK TODO: This needs to take into account the step size
+	// Add indexes for triangle strip primative
+	for (int y = 0; y < (depthFrameHeight / stepSize); y++) {
+		for (int x = 0; x < (depthFrameWidth / stepSize); x++) {
+			mesh.addIndex(x + y * (depthFrameWidth / stepSize));               // 0
+			mesh.addIndex((x + 1) + y * (depthFrameWidth / stepSize));           // 1
+			mesh.addIndex(x + (y + 1) * (depthFrameWidth / stepSize));           // 10
+
+			mesh.addIndex((x + 1) + y * (depthFrameWidth / stepSize));           // 1
+			mesh.addIndex((x + 1) + (y + 1) * (depthFrameWidth / stepSize));       // 11
+			mesh.addIndex(x + (y + 1) * (depthFrameWidth / stepSize));           // 10
+		}
+	}
+
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
 	ofBackgroundGradient(ofColor::black, ofColor::black, OF_GRADIENT_CIRCULAR);
+	
+	auto vertCount = mesh.getNumVertices();
+	auto centerIshNode = mesh.getVertex(vertCount / 2);
 
 	// even points can overlap with each other, let's avoid that
+	spot.enable();
 	cam.begin();
 	//ofScale(2, -2, 2); // flip the y axis
 	//ofRotateYDeg(90);
@@ -148,6 +164,7 @@ void ofApp::draw(){
 		}
 	}
 	cam.end();
+	spot.disable();
 
 	// Draw Text
 	stringstream ss;

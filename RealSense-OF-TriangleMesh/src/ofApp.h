@@ -31,5 +31,7 @@ class ofApp : public ofBaseApp{
 
 		ofEasyCam cam;
 		ofMesh mesh;
+		ofLight spot;
 		std::vector<std::unique_ptr<ofMesh>> meshes;
+		glm::vec3 center;
 };
