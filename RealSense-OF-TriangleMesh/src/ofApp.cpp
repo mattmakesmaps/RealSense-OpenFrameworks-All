@@ -8,13 +8,13 @@ const int ofApp::appWidth = depthFrameWidth * 2;
 const int ofApp::appHeight = depthFrameHeight * 2;
 
 namespace {
-	bool enableNoiseSmoothing = false;
+	bool enableNoiseSmoothing = true;
 	bool labelPoints = false;
 	auto minRawDepth = 0.1;
 	auto maxRawDepth = 2.0;
 	auto minMappedDepth = 1;
 	auto maxMappedDepth = 1000;
-	int stepSize = 20;
+	int stepSize = 7;
 
 	typedef std::pair <std::string, ofPrimitiveMode> primativePair;
 	vector<primativePair> primativeModes = {
@@ -34,6 +34,9 @@ namespace {
 void ofApp::setup() {
 	rs2_pipe.start();
 	ofSetVerticalSync(true);
+
+	spot.setup();
+	spot.setPosition(0,0,0);
 
 	ofEnableDepthTest();
 	glEnable(GL_POINT_SMOOTH); // use circular points instead of square points
@@ -153,14 +156,14 @@ void ofApp::draw(){
 			stringstream sPos;
 
 			/* uncomment for format: <point:x,y,z> */
-			/*
 			sPos << i << ":" << vertX << "," << vertY << "," << vertZ << std::endl;
 			ofDrawBitmapString(sPos.str().c_str(), vertX + 1, vertY + 1, vertZ + 1);
-			*/
 
 			/* uncomment for format: <point> */
+			/*
 			sPos << i << std::endl;
 			ofDrawBitmapString(sPos.str().c_str(), vertX + 1, vertY + 1, vertZ + 1);
+			*/
 		}
 	}
 	cam.end();
