@@ -43,7 +43,6 @@ void ofApp::setup() {
 	meshMaterial.setDiffuseColor(ofColor::orange);
 	meshMaterial.setShininess(0.01);
 
-	ofEnableDepthTest();
 	glEnable(GL_POINT_SMOOTH); // use circular points instead of square points
 	glPointSize(3); // make the points bigger
 
@@ -135,6 +134,7 @@ void ofApp::update() {
 
 //--------------------------------------------------------------
 void ofApp::draw(){
+	ofEnableDepthTest();
 	ofBackgroundGradient(ofColor::black, ofColor::black, OF_GRADIENT_CIRCULAR);
 	
 	auto vertCount = mesh.getNumVertices();
@@ -172,8 +172,8 @@ void ofApp::draw(){
 		}
 	}
 	cam.end();
-	spot.disable();
 
+	ofDisableDepthTest();
 	// Draw Text
 	stringstream ss;
 	ss << "Point Density (m, n): " << stepSize << std::endl;
@@ -185,8 +185,9 @@ void ofApp::draw(){
 	ss << "spotZ (q, w): " << spotZ << std::endl;
 	ss << "spotX (a, s): " << spotX << std::endl;
 	ss << "spotY (z, x): " << spotY << std::endl;
-	ofDrawBitmapString(ss.str().c_str(), 20, 20);
+	ofDrawBitmapStringHighlight(ss.str().c_str(), 20, 20, ofColor::white, ofColor::black);
 
+	spot.disable();
 }
 
 //--------------------------------------------------------------
