@@ -14,6 +14,9 @@ namespace {
 	auto maxRawDepth = 2.0;
 	auto minMappedDepth = 1;
 	auto maxMappedDepth = 1000;
+	auto spotZ = 100;
+	auto spotX = 100;
+	auto spotY = -175;
 	int stepSize = 7;
 
 	typedef std::pair <std::string, ofPrimitiveMode> primativePair;
@@ -36,7 +39,6 @@ void ofApp::setup() {
 	ofSetVerticalSync(true);
 
 	spot.setup();
-	spot.setPosition(100,-175,0);
 
 	meshMaterial.setDiffuseColor(ofColor::orange);
 	meshMaterial.setShininess(0.01);
@@ -59,6 +61,8 @@ void ofApp::update() {
 	mesh.clear();
 	mesh.setMode(primativeModeIterator->second);
 	mesh.enableIndices();
+
+	spot.setPosition(spotX,spotY,spotZ);
 
 	// loop through the image in the x and y axes
 	for (int y = 0; y < depthFrameHeight; y += stepSize) {
@@ -177,7 +181,10 @@ void ofApp::draw(){
 	ss << "maxnRawDepth (l,k): " << maxRawDepth << std::endl;
 	ss << "enableNoiseSmoothing (f): " << (enableNoiseSmoothing ? "true" : "false") << std::endl;
 	ss << "labelPoints (u): " << (labelPoints ? "true" : "false") << std::endl;
-	ss << "primativeMode (x): " << primativeModeIterator->first << std::endl;
+	ss << "primativeMode (y): " << primativeModeIterator->first << std::endl;
+	ss << "spotZ (q, w): " << spotZ << std::endl;
+	ss << "spotX (a, s): " << spotX << std::endl;
+	ss << "spotY (z, x): " << spotY << std::endl;
 	ofDrawBitmapString(ss.str().c_str(), 20, 20);
 
 }
@@ -193,7 +200,7 @@ void ofApp::keyPressed(int key){
 		labelPoints = !labelPoints;
 
 	// Cycle Primative Mode 
-	if (key == 'x') {
+	if (key == 'y') {
 		// MK NOTE: end() actually returns an iterator referring to the "past-the-end" element.
 		// So I'm incrementing the iterator first, then checking if it is equivalent.
 		primativeModeIterator++;
@@ -247,6 +254,23 @@ void ofApp::keyPressed(int key){
 			stepSize -= 1;
 	};
 
+	// Increase Decrease spotZ 
+	if (key == 'w')
+		spotZ += 5;
+	if (key == 'q')
+		spotZ -= 5;
+
+	// Increase Decrease spotX
+	if (key == 's')
+		spotX += 5;
+	if (key == 'a')
+		spotX -= 5;
+
+	// Increase Decrease spotY
+	if (key == 'x')
+		spotY += 5;
+	if (key == 'z')
+		spotY -= 5;
 
 }
 
